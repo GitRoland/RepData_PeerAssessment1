@@ -1,25 +1,123 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Project 1"
+author: "Roland Fernandez"
+date: "January 20, 2016"
+output: html_document
 ---
 
+This page was produced from an R Markdown document that contains the code and description of the plot for project1.
 
-## Loading and preprocessing the data
+**A. Loading and preprocessing the data**
+-----------------------------------------  
+
+First, we load our data:
+```{r}
+df = read.csv("activity.csv")
+summary(df)
+```
+
+**B. What is mean total number of steps taken per day?**
+--------------------------------------------------------
+
+Below, we group the data by day, computing the total number of steps for each day.
+```{r}
+agg = aggregate(df$steps, by=list(date=df$date), FUN=sum)
+head(agg)
+```
+
+Now, we plot the vector of total steps per day in a histogram to see the frequency distribution.
+```{r}
+hist(agg$x, main="Histogram of Total Steps/Day (Missing values included)", xlab="Steps/Day")
+```
+
+Here, we calculate the mean and median number of steps taken each day.
+```{r}
+mean(agg$x, na.rm=TRUE)
+median(agg$x, na.rm=TRUE)
+```
+
+**C. What is the average daily activity pattern?**
+--------------------------------------------------
+
+Remove NA rows, average by interval, and create a line plot to display the results.
+```{r}
+df2 = df[!is.na(df$steps),] 
+agg = aggregate(df2$steps, list(df2$interval), mean)
+plot(agg$x, x=agg$Group.1, type="l", xlab="Interval", ylab="Avg steps/day", main="Avg number of steps (over all days)")
+```
+
+Which 5-minute interval, as shown in the plot, contains the maximum number of steps?
+```{r}
+index = which.max(agg$x)
+cat("the max steps=", agg$x[index], "can be found at interval=", agg$Group.1[index])
+```
+
+**D. Imputing missing values**
+------------------------------
+
+Let's calculate the total number of missing values in the dataset.
+```{r}
+sum(!complete.cases(df))
+```
+
+How many of those are in the steps column?
+```{r}
+sum(is.na(df$steps))
+```
+
+OK, let's replace the na values in steps with the average for the 5 minute interval (already stored in "agg").
+```{r}
+df3 = df
+df3$steps = ifelse(is.na(df$steps), agg$x[match(df$interval, agg$Group.1)], df$steps)
+```
+
+As before, we group the data by day, computing the total number of steps for each day.
+```{r}
+agg3 = aggregate(df3$steps, by=list(date=df3$date), FUN=sum)
+head(agg3)
+```
+
+As before, we plot the vector of total steps per day in a histogram to see the frequency distribution.
+```{r}
+hist(agg3$x, main="Histogram of Total Steps/Day (Imputed data)", xlab="Steps/Day")
+```
+
+Here, we calculate the mean and median number of steps taken each day.
+```{r}
+mean(agg3$x, na.rm=TRUE)
+median(agg3$x, na.rm=TRUE)
+```
+
+We see here the mean and median of the imputed data is the same as the mean of the original data, but the histogram shows that the frequencies have increased.
+
+**E. Are there differences in activity patterns between weekdays and weekends?**
+-----------------------------------------------------------------------------
+
+Let's add an "isWeekEnd" column, so we can compare weekend values to weekday values.
+```{r}
+df3$isWeekEnd = as.POSIXlt(df3$date)$wday %in% c(0, 6)
+```
+
+In preparation for building of plot of each, compute the aggregates of weekends, weekdays.
+```{r}
+df3a = df3[df3$isWeekEnd,]
+agg3a = aggregate(df3a$steps, list(df3a$interval), mean)
+
+df3b = df3[!df3$isWeekEnd,]
+agg3b = aggregate(df3b$steps, list(df3b$interval), mean)
+```
+
+Now, create both plots.
+```{r, fig.height=10}
+par(mfrow=c(2,1))
+
+## calculate the maxY value to use for both plots
+maxY = max(max(agg3a$x), max(agg3b$x))
+
+plot(agg3a$x, x=agg3a$Group.1, type="l", xlab="Interval", ylab="Avg steps/day", main="Avg number of steps (Weekends)", ylim=c(0, maxY))
+
+plot(agg3b$x, x=agg3b$Group.1, type="l", xlab="Interval", ylab="Avg steps/day", main="Avg number of steps (Weekdays)",  ylim=c(0, maxY))
+```
 
 
 
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
